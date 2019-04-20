@@ -1,0 +1,62 @@
+version: '3'
+
+services:
+
+### Amazon RDS ###
+  aws_rds:
+    image: mysql:5.7
+    environment:
+      MYSQL_DATABASE: example
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    ports:
+      - 3306:3306
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    environment:
+      - PMA_ARBITRARY=1
+      - PMA_HOSTS=aws_rds
+      - PMA_USER=root
+      - PMA_PASSWORD=root
+    ports:
+      - 8080:80
+
+### Amazon S3 ###
+  aws_s3:
+    image: minio/minio:RELEASE.2019-04-18T01-15-57Z
+    ports:
+      - 9000:9000
+    environment:
+      MINIO_ACCESS_KEY: AKIAIOSFODNN7EXAMPLE
+      MINIO_SECRET_KEY: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+    command: server /export
+
+### Amazon ElastiCache ###
+  aws_elasticache:
+    image: redis:4.0
+    ports:
+      - 6379:6379
+  rediscommander:
+    image: rediscommander/redis-commander:latest
+    environment:
+      - REDIS_HOSTS=local:aws_elasticache:6379
+    ports:
+      - 8081:8081
+
+### Amazon DynamoDB ###
+  aws_dynamodb:
+    image: instructure/dynamo-local-admin:latest
+    ports:
+      - 8000:8000
+      - 8001:8001
+      - 8002:8002
+
+### Amazon SQS ###
+  aws_sqs:
+    image: roribio16/alpine-sqs:latest
+    ports:
+      - 9324:9324
+      - 9325:9325
+    stdin_open: true
+    tty: true
