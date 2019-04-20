@@ -62,6 +62,7 @@ func main() {
 		log.Println(err)
 	}
 
+	// File upload.
 	if file, err := os.Open("./example.txt"); err == nil {
 		defer file.Close()
 		if fileInfo, err := file.Stat(); err == nil {
