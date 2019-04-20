@@ -83,6 +83,9 @@ func main() {
 	dynamodbPutGetExample(table1, example1Key, example1Attribute)
 
 	// ################## SQS ########################
+
+	// goamz ->  FIFO queue Notsupported!!
+
 	clientQ := example.NewSQSClient(config.SQS)
 	clientQ.Init(config.Region)
 	queue1 := clientQ.GetQueue(config.SQS.QueueName1)
