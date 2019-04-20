@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 	"time"
 
 	"github.com/goamz/goamz/dynamodb"
+	"github.com/goamz/goamz/s3"
 	"github.com/goamz/goamz/sqs"
 
 	"github.com/BurntSushi/toml"
@@ -19,6 +21,7 @@ type Config struct {
 	Region   string
 	DynamoDB example.DynamoDBConfig
 	SQS      example.SQSConfig
+	S3       example.S3Config
 }
 
 func main() {
@@ -35,6 +38,38 @@ func main() {
 		ProductID:   100,
 		ProductItem: []string{"AAA", "BBB", "CCC"},
 		OrderDate:   time.Now(),
+	}
+
+	// ################## S3 ########################
+
+	// deprecated!! goamz -> signature v2
+	// https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingAWSSDK.html#UsingAWSSDK-sig2-deprecation
+
+	clientS := example.News3Client(config.S3)
+	clientS.Init(config.Region)
+	bucket1 := clientS.GetBucket(config.S3.BucketName1)
+
+	data, _ := json.Marshal(example1)
+	// Put example
+	if err := bucket1.Put("example.json", data, "text/plain", s3.BucketOwnerFull, s3.Options{}); err == nil {
+		// Get example
+		if content, err := bucket1.Get("example.json"); err == nil {
+			log.Println(content)
+		} else {
+			log.Println(err)
+		}
+	} else {
+		log.Println(err)
+	}
+
+	if file, err := os.Open("./example.txt"); err == nil {
+		defer file.Close()
+		if fileInfo, err := file.Stat(); err == nil {
+			err = bucket1.PutReader("example.txt", file, fileInfo.Size(), "text/plain", s3.PublicRead, s3.Options{})
+			if err != nil {
+				panic(err.Error())
+			}
+		}
 	}
 
 	// ################## DynamoDB ########################

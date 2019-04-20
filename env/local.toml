@@ -7,3 +7,7 @@ TableName2 = "example2"
 [SQS]
 QueueName1 = "example"
 QueueName2 = "example2"
+
+[S3]
+BucketName1 = "example"
+BucketName2 = "example2"
