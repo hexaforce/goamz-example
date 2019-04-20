@@ -18,7 +18,6 @@ type DynamoDBClient struct {
 	auth   aws.Auth
 	region aws.Region
 	server *dynamodb.Server
-	Table1 *dynamodb.Table
 }
 
 func NewDynamoDBClient(c DynamoDBConfig) *DynamoDBClient {
@@ -35,7 +34,9 @@ func (c *DynamoDBClient) Init(region string) {
 	if c.auth, err = aws.EnvAuth(); err != nil {
 		// $HOME/.aws/credentials. The AWS_PROFILE environment variables is used to select the profile.
 		if c.auth, err = aws.SharedAuth(); err != nil {
-			panic(err)
+			if region != "localhost" {
+				panic(err)
+			}
 		}
 	}
 

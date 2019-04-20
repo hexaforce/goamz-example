@@ -3,3 +3,7 @@ Region = "localhost"
 [DynamoDB]
 TableName1 = "example"
 TableName2 = "example2"
+
+[SQS]
+QueueName1 = "example"
+QueueName2 = "example2"
