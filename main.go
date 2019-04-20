@@ -99,7 +99,7 @@ func main() {
 	// 2 Message handling.
 	go sqsExampleMessagehandling(queue1, receiveChan)
 
-	// 3 Message enqueue.
+	// 3 Message en-queue.
 	ticker := time.NewTicker(3 * time.Second)
 	defer ticker.Stop()
 	for {
