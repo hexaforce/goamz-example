@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/goamz/goamz/dynamodb"
@@ -36,59 +37,30 @@ func main() {
 		OrderDate:   time.Now(),
 	}
 
-	// clientD := example.NewDynamoDBClient(config.DynamoDB)
-	// clientD.Init(config.Region)
+	// ################## DynamoDB ########################
+	clientD := example.NewDynamoDBClient(config.DynamoDB)
+	clientD.Init(config.Region)
 
-	// table1 := clientD.GetTable(config.DynamoDB.TableName1)
-	// example1Key := strconv.Itoa(example1.ExampleID)
-	// example1Attribute := clientD.AttributeMapping(example1)
-	//dynamodbExample(table1, example1Key, example1Attribute)
+	table1 := clientD.GetTable(config.DynamoDB.TableName1)
+	example1Key := strconv.Itoa(example1.ExampleID)
+	example1Attribute := clientD.AttributeMapping(example1)
+	dynamodbPutGetExample(table1, example1Key, example1Attribute)
 
+	// ################## SQS ########################
 	clientQ := example.NewSQSClient(config.SQS)
 	clientQ.Init(config.Region)
-
 	queue1 := clientQ.GetQueue(config.SQS.QueueName1)
 
 	receiveChan := make(chan sqs.Message)
 	defer close(receiveChan)
 
-	// Long polling.
-	go func() {
-		for {
-			if resp, err := queue1.ReceiveMessage(10); err == nil { // Max is 10
-				for _, message := range resp.Messages {
-					receiveChan <- message
-				}
-			} else {
-				log.Println(err)
-				break
-			}
-		}
-	}()
+	// 1 Long polling.
+	go sqsExampleLongpolling(queue1, receiveChan)
 
-	// Message handling.
-	go func() {
-		for {
-			select {
-			case message, ok := <-receiveChan:
-				if !ok {
-					log.Println("receiveChan closed.")
-					break
-				}
-				go func() {
-					x, _ := json.Marshal(message.Body)
-					log.Println(string(x))
-					if _, err := queue1.DeleteMessage(&message); err == nil {
-						log.Println("delete message.")
-					} else {
-						log.Println(err)
-					}
-				}()
-			}
-		}
-	}()
+	// 2 Message handling.
+	go sqsExampleMessagehandling(queue1, receiveChan)
 
-	// Enqueue message.
+	// 3 Message enqueue.
 	ticker := time.NewTicker(3 * time.Second)
 	defer ticker.Stop()
 	for {
@@ -99,9 +71,42 @@ func main() {
 			queue1.SendMessage(string(x))
 		}
 	}
+
+}
+func sqsExampleLongpolling(queue *sqs.Queue, receiveChan chan sqs.Message) {
+	for {
+		if resp, err := queue.ReceiveMessage(10); err == nil { // Max is 10
+			for _, message := range resp.Messages {
+				receiveChan <- message
+			}
+		} else {
+			log.Println(err)
+			break
+		}
+	}
 }
 
-func dynamodbExample(t *dynamodb.Table, k string, attributes []dynamodb.Attribute) {
+func sqsExampleMessagehandling(queue *sqs.Queue, receiveChan chan sqs.Message) {
+	for {
+		select {
+		case message, ok := <-receiveChan:
+			if !ok {
+				log.Println("receiveChan closed.")
+				break
+			}
+			go func() {
+				log.Println(message.Body)
+				if _, err := queue.DeleteMessage(&message); err == nil {
+					log.Println("delete message.")
+				} else {
+					log.Println(err)
+				}
+			}()
+		}
+	}
+}
+
+func dynamodbPutGetExample(t *dynamodb.Table, k string, attributes []dynamodb.Attribute) {
 
 	// PutItem example
 	if ok, err := t.PutItem(k, "", attributes); ok {
